@@ -44,6 +44,7 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.view.ViewGroup.LayoutParams;
 import android.widget.ProgressBar;
+import android.widget.RadioButton;
 import android.widget.TextView;
 import android.widget.Toast;
 import de.syss.MifareClassicTool.Common;
@@ -138,6 +139,10 @@ public class KeyMapCreator extends BasicActivity {
     private int mFirstSector;
     private int mLastSector;
 
+    SharedPreferences sharedPref;
+
+    EditText increaseStartView,decreaseStartView;
+
     /**
      * Set layout, set the mapping range
      * and initialize some member variables.
@@ -154,6 +159,8 @@ public class KeyMapCreator extends BasicActivity {
         mKeyFilesGroup = (LinearLayout) findViewById(
                 R.id.linearLayoutCreateKeyMapKeyFiles);
         mProgressBar = (ProgressBar) findViewById(R.id.progressBarCreateKeyMap);
+
+        bruteInfo = (TextView)findViewById(R.id.bruteInfo);
 
         // Init. sector range.
         Intent intent = getIntent();
@@ -195,6 +202,10 @@ public class KeyMapCreator extends BasicActivity {
             ((Button) findViewById(R.id.buttonCreateKeyMap)).setText(
                     intent.getStringExtra(EXTRA_BUTTON_TEXT));
         }
+
+        increaseStartView=(EditText)findViewById(R.id.increaseStart);
+        decreaseStartView=(EditText)findViewById(R.id.decreaseStart);
+        onSingleThread(this.findViewById(R.id.radioButton));
     }
 
     /**
@@ -426,6 +437,152 @@ public class KeyMapCreator extends BasicActivity {
                 // Read as much as possible with given key file.
                 createKeyMap(reader, this);
             }
+        }
+    }
+
+    String currentKey="";
+    String currentKey2="";
+    TextView bruteInfo;
+    String hexChar="0123456789ABCDEF";
+    int hexIndex[]={0,0,0,0,0,0,0,0,0,0,0,0};
+    int hexIndex2[]={15,15,15,15,15,15,15,15,15,15,15,15};
+    int thread1HandledCount=0,thread2HandledCount=0;
+    boolean doubleThread=false;
+
+    public void onSingleThread(View view){
+        ((RadioButton)findViewById(R.id.radioButton2)).setChecked(false);
+        ((LinearLayout)findViewById(R.id.decreaseLayout)).setVisibility(View.INVISIBLE);
+        doubleThread=false;
+        sharedPref = getPreferences(MODE_PRIVATE);
+        String increaseStart= sharedPref.getString("increaseStart","");
+        if(increaseStart.equals("")) increaseStartView.setText("000000000000");
+        else increaseStartView.setText(increaseStart);
+
+    }
+
+    public void onDoubleThread(View view){
+        ((RadioButton)findViewById(R.id.radioButton)).setChecked(false);
+        ((LinearLayout)findViewById(R.id.decreaseLayout)).setVisibility(View.VISIBLE);
+        doubleThread=true;
+        sharedPref = getPreferences(MODE_PRIVATE);
+        String decreaseStart= sharedPref.getString("decreaseStart","");
+        if(decreaseStart.equals("")) decreaseStartView.setText("FFFFFFFFFFFF");
+        else decreaseStartView.setText(decreaseStart);
+    }
+
+    public int[] setHexIndex(String hexString){
+        int outputHexIndex[]=new int[12];
+        for(int i=0;i<12;i++)
+            outputHexIndex[i]=hexChar.indexOf(hexString.charAt(i));
+        return outputHexIndex;
+    }
+
+    public void onBruteForce(View view){
+        final int bfFirstSector,bfLastSector;
+
+        // Create reader.
+        final MCReader reader = Common.checkForTagAndCreateReader(this);
+        if (reader == null) {
+            return;
+        }
+
+        // Don't turn screen of while mapping.
+        getWindow().addFlags(
+                WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
+        // Get key map range.
+        if (mSectorRange.getText().toString().equals(
+                getString(R.string.text_sector_range_all))) {
+            // Read all.
+            bfFirstSector = 0;
+            bfLastSector = reader.getSectorCount()-1;
+        } else {
+            String[] fromAndTo = mSectorRange.getText()
+                    .toString().split(" ");
+            bfFirstSector = Integer.parseInt(fromAndTo[0]);
+            bfLastSector = Integer.parseInt(fromAndTo[2]);
+        }
+
+        hexIndex=setHexIndex(increaseStartView.getText().toString());
+
+        Toast.makeText(this,"Sector:"+bfFirstSector+" Start!",Toast.LENGTH_SHORT).show();
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while(true){
+                    String tempStr="";
+                    for(int i:hexIndex) tempStr +=Character.toString( hexChar.charAt(i));
+                    currentKey = tempStr;
+                    byte[] keyInByte= Common.hexStringToByteArray(currentKey);
+                    if (reader.checkKey(bfFirstSector,keyInByte,KeyMapCreator.this)){
+                        final Editor sharedEditor = sharedPref.edit();
+                        sharedEditor.putString("Key",currentKey);
+                        sharedEditor.apply();
+                        break;
+                    }
+                    thread1HandledCount++;
+                    hexIncrease(11);
+                }
+            }
+        }).start();
+
+        if (doubleThread) {
+            hexIndex2=setHexIndex(decreaseStartView.getText().toString());
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    while (true) {
+                        String tempStr = "";
+                        for (int i : hexIndex2) tempStr += Character.toString(hexChar.charAt(i));
+                        currentKey2 = tempStr;
+                        byte[] keyInByte = Common.hexStringToByteArray(currentKey2);
+                        if (reader.checkKey(bfFirstSector, keyInByte, KeyMapCreator.this)) {
+                            SharedPreferences sharedPref = getPreferences(Context.MODE_PRIVATE);
+                            final Editor sharedEditor = sharedPref.edit();
+                            sharedEditor.putString("Key2", currentKey2);
+                            sharedEditor.apply();
+                            break;
+                        }
+                        thread2HandledCount++;
+                        hexDecrease(11);
+                    }
+                }
+            }).start();
+        }
+
+        final Handler scheduleUpdateUI=new Handler();
+        final Runnable updateUI = new Runnable() {
+            @Override
+            public void run() {
+                double speed=(thread1HandledCount+thread2HandledCount)/0.05;
+                bruteInfo.setText(currentKey+"\n"+currentKey2+"\nspeed : "+speed+" keys/sec");
+                thread1HandledCount=0;
+                thread2HandledCount=0;
+                scheduleUpdateUI.postDelayed(this, 50);
+            }
+        };
+        scheduleUpdateUI.post(updateUI);
+    }
+
+    public void onSaveState(View view){
+        sharedPref = getPreferences(MODE_PRIVATE);
+        final Editor sharedEditor = sharedPref.edit();
+        sharedEditor.putString("increaseStart",currentKey);
+        if(doubleThread) sharedEditor.putString("decreaseStart",currentKey2);
+        sharedEditor.apply();
+    }
+
+    public void hexIncrease(int degree){
+        if ((hexIndex[degree] +=1)==16){
+            hexIndex[degree]=0;
+            hexIncrease(degree-1);
+        }
+    }
+
+    public void hexDecrease(int degree){
+        if ((hexIndex2[degree] -=1)==-1){
+            hexIndex2[degree]=15;
+            hexDecrease(degree-1);
         }
     }
 

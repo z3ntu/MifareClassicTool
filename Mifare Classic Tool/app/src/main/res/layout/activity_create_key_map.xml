@@ -18,12 +18,16 @@
  */
 -->
 
-
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+<RelativeLayout
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/relativeLayoutCreateKeyMap"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
+    android:layout_height="250sp"
     tools:context=".KeyMapCreator"
     android:orientation="horizontal" >
 
@@ -137,9 +141,9 @@
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:layout_alignParentLeft="true"
-        android:layout_alignTop="@+id/buttonCreateKeyMap"
         android:onClick="onCancelCreateKeyMap"
-        android:text="@string/action_cancel" />
+        android:text="@string/action_cancel"
+        android:layout_above="@+id/textViewCreateKeyMapProgess" />
 
     <Button
         android:id="@+id/buttonCreateKeyMap"
@@ -152,3 +156,95 @@
         android:text="@string/action_create_key_map" />
 
 </RelativeLayout>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:text="Brute Force Attack"
+        android:id="@+id/textView" />
+
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <RadioButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Single thread"
+            android:id="@+id/radioButton"
+            android:onClick="onSingleThread"
+            android:checked="true"
+             />
+
+        <RadioButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Double thread"
+            android:id="@+id/radioButton2"
+            android:onClick="onDoubleThread"
+            android:checked="false" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Increase start"
+            android:id="@+id/textView2" />
+
+        <EditText
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/increaseStart" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/decreaseLayout">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Decrease start"
+            android:id="@+id/textView3" />
+
+        <EditText
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/decreaseStart" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Start Brute-force"
+            android:onClick="onBruteForce"
+            android:id="@+id/bruteForce" />
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Save current state"
+            android:onClick="onSaveState"
+            android:id="@+id/save" />
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/bruteInfo"
+        android:textColor="@android:color/white"/>
+</LinearLayout>

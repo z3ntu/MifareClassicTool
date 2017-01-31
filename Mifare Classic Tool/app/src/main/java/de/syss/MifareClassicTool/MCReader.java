@@ -35,6 +35,7 @@ import android.os.IBinder;
 import android.os.Parcel;
 import android.util.Log;
 import android.util.SparseArray;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import de.syss.MifareClassicTool.Activities.Preferences.Preference;
@@ -584,6 +585,21 @@ public class MCReader {
             return -1;
         }
         return mKeyMapStatus - 1;
+    }
+
+    public boolean checkKey(int KeyMapStatus,byte[] keyInByte,Context context){
+        boolean checkResult;
+        try {
+            checkResult = mMFC.authenticateSectorWithKeyA(
+                    KeyMapStatus, keyInByte);
+            if (checkResult) return checkResult;
+            checkResult = mMFC.authenticateSectorWithKeyB(
+                    KeyMapStatus, keyInByte);
+            return checkResult;
+        }catch (Exception e){
+            Toast.makeText(context,e.toString(),Toast.LENGTH_LONG).show();
+            return false;
+        }
     }
 
     /**
